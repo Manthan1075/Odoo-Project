@@ -1,8 +1,15 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { Image } from '@mantine/core'
 import { useForm } from 'react-hook-form'
+import { useNavigate } from 'react-router'
+import { toast } from 'react-toastify'
+import { loginUser } from '../api/userApi.js'
 
 function Login() {
+
+    const navigate = useNavigate()
+
+    const [loading, setLoading] = useState(false)
 
     const {
         handleSubmit,
@@ -10,9 +17,50 @@ function Login() {
         formState: { errors }
     } = useForm()
 
-    const onSubmit = (data) => {
-        console.log(data)
-        // API Call
+    const onSubmit = async (data) => {
+
+        try {
+
+            setLoading(true)
+
+            const res = await loginUser({
+                email: data.email,
+                password: data.password
+            })
+
+            toast.success(
+                res?.message || "Login Successful"
+            )
+
+            // Save user if needed
+            localStorage.setItem(
+                "user",
+                JSON.stringify(res.user)
+            )
+
+            // Save token if backend returns token
+            if (res.token) {
+                localStorage.setItem(
+                    "token",
+                    res.token
+                )
+            }
+
+            navigate("/")
+
+        } catch (error) {
+
+            toast.error(
+                error?.message ||
+                "Invalid Credentials"
+            )
+
+        } finally {
+
+            setLoading(false)
+
+        }
+
     }
 
     return (
@@ -20,7 +68,6 @@ function Login() {
 
             <div className="w-full max-w-md bg-white rounded-2xl shadow-lg p-8">
 
-                {/* Logo */}
                 <div className="flex flex-col items-center mb-8">
 
                     <Image
@@ -41,13 +88,11 @@ function Login() {
 
                 </div>
 
-                {/* Form */}
                 <form
                     onSubmit={handleSubmit(onSubmit)}
                     className="space-y-5"
                 >
 
-                    {/* Email */}
                     <div>
 
                         <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -58,11 +103,7 @@ function Login() {
                             type="email"
                             placeholder="Enter email..."
                             {...register("email", {
-                                required: "Email is required",
-                                pattern: {
-                                    value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-                                    message: "Enter a valid email address"
-                                }
+                                required: "Email is required"
                             })}
                             className={`
                                 w-full
@@ -71,10 +112,6 @@ function Login() {
                                 border
                                 rounded-lg
                                 outline-none
-                                transition
-                                focus:ring-2
-                                focus:ring-blue-500
-                                focus:border-blue-500
                                 ${errors.email
                                     ? "border-red-500"
                                     : "border-gray-300"
@@ -82,15 +119,16 @@ function Login() {
                             `}
                         />
 
-                        {errors.email && (
-                            <p className="text-red-500 text-sm mt-1">
-                                {errors.email.message}
-                            </p>
-                        )}
+                        {
+                            errors.email && (
+                                <p className="text-red-500 text-sm mt-1">
+                                    {errors.email.message}
+                                </p>
+                            )
+                        }
 
                     </div>
 
-                    {/* Password */}
                     <div>
 
                         <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -101,12 +139,7 @@ function Login() {
                             type="password"
                             placeholder="Enter password..."
                             {...register("password", {
-                                required: "Password is required",
-                                minLength: {
-                                    value: 6,
-                                    message:
-                                        "Password must be at least 6 characters"
-                                }
+                                required: "Password is required"
                             })}
                             className={`
                                 w-full
@@ -115,10 +148,6 @@ function Login() {
                                 border
                                 rounded-lg
                                 outline-none
-                                transition
-                                focus:ring-2
-                                focus:ring-blue-500
-                                focus:border-blue-500
                                 ${errors.password
                                     ? "border-red-500"
                                     : "border-gray-300"
@@ -126,16 +155,19 @@ function Login() {
                             `}
                         />
 
-                        {errors.password && (
-                            <p className="text-red-500 text-sm mt-1">
-                                {errors.password.message}
-                            </p>
-                        )}
+                        {
+                            errors.password && (
+                                <p className="text-red-500 text-sm mt-1">
+                                    {errors.password.message}
+                                </p>
+                            )
+                        }
 
                     </div>
 
                     <button
                         type="submit"
+                        disabled={loading}
                         className="
                             w-full
                             bg-blue-600
@@ -145,11 +177,14 @@ function Login() {
                             rounded-lg
                             font-semibold
                             transition
-                            duration-300
-                            cursor-pointer
+                            disabled:opacity-70
                         "
                     >
-                        Login
+                        {
+                            loading
+                                ? "Logging In..."
+                                : "Login"
+                        }
                     </button>
 
                 </form>

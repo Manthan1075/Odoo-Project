@@ -31,9 +31,9 @@ function Sidebar() {
         officer: {
             dashboard: "/dashboard",
             vendors: "/vendors",
-            rfq: "/admin/rfq",
-            quotation: "/admin/quotation",
-            approvals: "/admin/approvals",
+            rfq: "/rfq",
+            quotation: "/quotations",
+            approvals: "/approvals",
             orders: "/orders",
             report: "/report"
         },
@@ -41,9 +41,9 @@ function Sidebar() {
         manager: {
             dashboard: "/dashboard",
             vendors: "/vendors",
-            rfq: "/admin/rfq",
-            quotation: "/admin/quotation",
-            approvals: "/admin/approvals",
+            rfq: "/rfq",
+            quotation: "/quotation",
+            approvals: "/approvals",
             orders: "/orders",
             report: "/report"
         }
@@ -74,7 +74,7 @@ function Sidebar() {
             "
         >
             {/* Heading */}
-           
+
 
             {/* Links */}
             <div className="flex flex-col gap-2">

@@ -9,6 +9,12 @@ import Vendors from "./pages/Vendors";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import RFQForm from "./pages/RFQForm";
+import QuotationForm from "./pages/QuotationForm";
+import Quotations from "./pages/Quotations";
+import Approvals from "./pages/Approvals";
+import ApprovalDetails from "./pages/ApprovalDetails";
+import Invoices from "./pages/Invoices";
+import Orders from "./pages/Orders";
 
 function Layout() {
   return (
@@ -46,7 +52,7 @@ function App() {
         <Route path="/" element={<Layout />}>
 
           <Route
-            index
+            path="/dashboard"
             element={<Dashboard />}
           />
 
@@ -56,9 +62,40 @@ function App() {
           />
 
           <Route
-            path="/rfq-form"
+            path="/rfq"
             element={<RFQForm />}
           />
+
+          <Route
+            path="/quotation-form"
+            element={<QuotationForm />}
+          />
+
+          <Route
+            path="/quotations"
+            element={<Quotations />}
+          />
+
+          <Route
+            path="/approvals"
+            element={<Approvals />}
+          />
+
+          <Route
+            path="/approval-detail/:id"
+            element={<ApprovalDetails />}
+          />
+
+          <Route
+            path="/orders"
+            element={<Orders />}
+          />
+
+          <Route
+            path="/order-invoice/:id"
+            element={<Invoices />}
+          />
+
         </Route>
 
         <Route

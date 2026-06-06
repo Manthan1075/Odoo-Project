@@ -1,9 +1,15 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { useForm, Controller } from 'react-hook-form'
 import { Select } from '@mantine/core'
-import { Link } from 'react-router'
+import { useNavigate } from 'react-router'
+import { toast } from 'react-toastify'
+import { registerUser } from '../api/userApi'
 
 function Register() {
+
+    const navigate = useNavigate()
+
+    const [loading, setLoading] = useState(false)
 
     const {
         handleSubmit,
@@ -12,8 +18,49 @@ function Register() {
         formState: { errors }
     } = useForm()
 
-    const onSubmit = (data) => {
-        console.log(data)
+    const onSubmit = async (data) => {
+
+        try {
+
+            if (data.password !== data.confirmPassword) {
+
+                toast.error("Passwords do not match")
+
+                return
+            }
+
+            setLoading(true)
+
+            const res = await registerUser({
+                username: data.username,
+                firstName: data.firstName,
+                lastName: data.lastName,
+                email: data.email,
+                password: data.password,
+                phone: data.phone,
+                role: data.role
+            })
+
+            toast.success(
+                res?.message ||
+                "User Registered Successfully"
+            )
+
+            navigate("/dashboard")
+
+        } catch (error) {
+
+            toast.error(
+                error?.message ||
+                "Registration Failed"
+            )
+
+        } finally {
+
+            setLoading(false)
+
+        }
+
     }
 
     const inputStyle = `
@@ -30,11 +77,13 @@ function Register() {
     `
 
     return (
+
         <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
 
-            <div className="w-full max-w-4xl bg-white rounded-2xl border border-slate-200 shadow-sm p-8">
+            <div className="w-full max-w-5xl bg-white rounded-2xl border border-slate-200 shadow-sm p-8">
 
                 {/* Header */}
+
                 <div className="mb-8">
 
                     <h1 className="text-3xl font-bold text-slate-800">
@@ -53,6 +102,7 @@ function Register() {
                 >
 
                     {/* Username + Email */}
+
                     <div className="grid md:grid-cols-2 gap-5">
 
                         <div>
@@ -68,8 +118,7 @@ function Register() {
                                     required: "Username is required",
                                     minLength: {
                                         value: 3,
-                                        message:
-                                            "Minimum 3 characters"
+                                        message: "Minimum 3 characters"
                                     }
                                 })}
                                 className={`${inputStyle}
@@ -79,11 +128,13 @@ function Register() {
                                     }`}
                             />
 
-                            {errors.username && (
-                                <p className="text-red-500 text-sm mt-1">
-                                    {errors.username.message}
-                                </p>
-                            )}
+                            {
+                                errors.username && (
+                                    <p className="text-red-500 text-sm mt-1">
+                                        {errors.username.message}
+                                    </p>
+                                )
+                            }
 
                         </div>
 
@@ -112,17 +163,19 @@ function Register() {
                                     }`}
                             />
 
-                            {errors.email && (
-                                <p className="text-red-500 text-sm mt-1">
-                                    {errors.email.message}
-                                </p>
-                            )}
+                            {
+                                errors.email && (
+                                    <p className="text-red-500 text-sm mt-1">
+                                        {errors.email.message}
+                                    </p>
+                                )
+                            }
 
                         </div>
 
                     </div>
 
-                    {/* First + Last */}
+                    {/* First Name + Last Name */}
 
                     <div className="grid md:grid-cols-2 gap-5">
 
@@ -146,11 +199,13 @@ function Register() {
                                     }`}
                             />
 
-                            {errors.firstName && (
-                                <p className="text-red-500 text-sm mt-1">
-                                    {errors.firstName.message}
-                                </p>
-                            )}
+                            {
+                                errors.firstName && (
+                                    <p className="text-red-500 text-sm mt-1">
+                                        {errors.firstName.message}
+                                    </p>
+                                )
+                            }
 
                         </div>
 
@@ -174,11 +229,90 @@ function Register() {
                                     }`}
                             />
 
-                            {errors.lastName && (
-                                <p className="text-red-500 text-sm mt-1">
-                                    {errors.lastName.message}
-                                </p>
-                            )}
+                            {
+                                errors.lastName && (
+                                    <p className="text-red-500 text-sm mt-1">
+                                        {errors.lastName.message}
+                                    </p>
+                                )
+                            }
+
+                        </div>
+
+                    </div>
+
+                    {/* Password + Confirm Password */}
+
+                    <div className="grid md:grid-cols-2 gap-5">
+
+                        <div>
+
+                            <label className="block mb-2">
+                                Password
+                            </label>
+
+                            <input
+                                type="password"
+                                placeholder="Enter password"
+                                {...register("password", {
+                                    required:
+                                        "Password is required",
+                                    minLength: {
+                                        value: 6,
+                                        message:
+                                            "Password must be at least 6 characters"
+                                    }
+                                })}
+                                className={`${inputStyle}
+                                ${errors.password
+                                        ? "border-red-500"
+                                        : "border-slate-300"
+                                    }`}
+                            />
+
+                            {
+                                errors.password && (
+                                    <p className="text-red-500 text-sm mt-1">
+                                        {errors.password.message}
+                                    </p>
+                                )
+                            }
+
+                        </div>
+
+                        <div>
+
+                            <label className="block mb-2">
+                                Confirm Password
+                            </label>
+
+                            <input
+                                type="password"
+                                placeholder="Confirm password"
+                                {...register(
+                                    "confirmPassword",
+                                    {
+                                        required:
+                                            "Confirm password is required"
+                                    }
+                                )}
+                                className={`${inputStyle}
+                                ${errors.confirmPassword
+                                        ? "border-red-500"
+                                        : "border-slate-300"
+                                    }`}
+                            />
+
+                            {
+                                errors.confirmPassword && (
+                                    <p className="text-red-500 text-sm mt-1">
+                                        {
+                                            errors.confirmPassword
+                                                .message
+                                        }
+                                    </p>
+                                )
+                            }
 
                         </div>
 
@@ -191,15 +325,15 @@ function Register() {
                         <div>
 
                             <label className="block mb-2">
-                                Phone
+                                Phone Number
                             </label>
 
                             <input
                                 type="tel"
-                                placeholder="Enter phone"
+                                placeholder="Enter phone number"
                                 {...register("phone", {
                                     required:
-                                        "Phone number required",
+                                        "Phone number is required",
                                     pattern: {
                                         value:
                                             /^[0-9]{10}$/,
@@ -214,11 +348,13 @@ function Register() {
                                     }`}
                             />
 
-                            {errors.phone && (
-                                <p className="text-red-500 text-sm mt-1">
-                                    {errors.phone.message}
-                                </p>
-                            )}
+                            {
+                                errors.phone && (
+                                    <p className="text-red-500 text-sm mt-1">
+                                        {errors.phone.message}
+                                    </p>
+                                )
+                            }
 
                         </div>
 
@@ -229,17 +365,29 @@ function Register() {
                                 control={control}
                                 rules={{
                                     required:
-                                        "Select a role"
+                                        "Please select a role"
                                 }}
                                 render={({ field }) => (
                                     <Select
                                         label="Role"
                                         placeholder="Select Role"
                                         data={[
-                                            "Admin",
-                                            "Vendor",
-                                            "Procurement Officer",
-                                            "Manager"
+                                            {
+                                                value: "admin",
+                                                label: "Admin"
+                                            },
+                                            {
+                                                value: "vendor",
+                                                label: "Vendor"
+                                            },
+                                            {
+                                                value: "officer",
+                                                label: "Procurement Officer"
+                                            },
+                                            {
+                                                value: "manager",
+                                                label: "Manager"
+                                            }
                                         ]}
                                         {...field}
                                         error={
@@ -257,8 +405,9 @@ function Register() {
 
                     <div className="flex justify-end gap-3 pt-5">
 
-                        <Link
-                            to={-1}
+                        <button
+                            type="button"
+                            onClick={() => navigate(-1)}
                             className="
                                 px-6
                                 py-3
@@ -269,10 +418,11 @@ function Register() {
                             "
                         >
                             Back
-                        </Link>
+                        </button>
 
                         <button
                             type="submit"
+                            disabled={loading}
                             className="
                                 px-8
                                 py-3
@@ -280,9 +430,14 @@ function Register() {
                                 text-white
                                 rounded-xl
                                 hover:bg-blue-700
+                                disabled:opacity-70
                             "
                         >
-                            Register User
+                            {
+                                loading
+                                    ? "Registering..."
+                                    : "Register User"
+                            }
                         </button>
 
                     </div>
@@ -292,6 +447,7 @@ function Register() {
             </div>
 
         </div>
+
     )
 }
 

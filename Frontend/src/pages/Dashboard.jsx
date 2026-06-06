@@ -1,7 +1,8 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import {
     Button,
     Card,
+    Loader,
     Table
 } from '@mantine/core'
 
@@ -13,60 +14,210 @@ import {
     Plus
 } from 'lucide-react'
 
+import { toast } from 'react-toastify'
+
+import {
+    getDashboardStats,
+    getRecentPOs,
+    getSpendingTrend,
+    getQuickStats
+} from '../api/dashboardApi'
+
 function Dashboard() {
 
     const role = "Procurement Officer"
 
+    const [loading, setLoading] = useState(true)
+
+    const [stats, setStats] = useState({
+        activeRFQs: 0,
+        pendingApprovals: 0,
+        poThisMonth: 0,
+        overdueInvoices: 0
+    })
+
+    const [orders, setOrders] = useState([])
+
+    const [spending, setSpending] = useState([])
+
+    const [quickStats, setQuickStats] = useState({
+        totalVendors: 0,
+        approvedVendors: 0,
+        blockedVendors: 0,
+        totalPOs: 0
+    })
+
+    useEffect(() => {
+
+        const fetchDashboardData = async () => {
+
+            try {
+
+                setLoading(true)
+
+                const [
+                    statsResult,
+                    ordersResult,
+                    spendingResult,
+                    quickStatsResult
+                ] = await Promise.allSettled([
+                    getDashboardStats(),
+                    getRecentPOs(),
+                    getSpendingTrend(),
+                    getQuickStats()
+                ])
+
+                // Dashboard Stats
+
+                if (
+                    statsResult.status === "fulfilled"
+                ) {
+
+                    setStats(
+                        statsResult.value?.data || {
+                            activeRFQs: 0,
+                            pendingApprovals: 0,
+                            poThisMonth: 0,
+                            overdueInvoices: 0
+                        }
+                    )
+
+                }
+
+                // Recent Orders
+
+                if (
+                    ordersResult.status === "fulfilled"
+                ) {
+
+                    setOrders(
+                        ordersResult.value?.data || []
+                    )
+
+                }
+
+                // Spending Trend
+
+                if (
+                    spendingResult.status === "fulfilled"
+                ) {
+
+                    const formattedTrend =
+                        spendingResult.value?.data?.map(
+                            (item) => ({
+                                month:
+                                    `${item?._id?.month}/${item?._id?.year}`,
+                                spends:
+                                    item?.spends || 0
+                            })
+                        ) || []
+
+                    setSpending(
+                        formattedTrend
+                    )
+
+                }
+
+                // Quick Stats
+
+                if (
+                    quickStatsResult.status === "fulfilled"
+                ) {
+
+                    setQuickStats(
+                        quickStatsResult.value?.data || {
+                            totalVendors: 0,
+                            approvedVendors: 0,
+                            blockedVendors: 0,
+                            totalPOs: 0
+                        }
+                    )
+
+                }
+
+            } catch (error) {
+
+                toast.error(
+                    error?.message ||
+                    "Failed to load dashboard"
+                )
+
+            } finally {
+
+                setLoading(false)
+
+            }
+
+        }
+
+        fetchDashboardData()
+
+    }, [])
+
     const cards = [
         {
             title: "Active RFQ's",
-            value: 12
+            value: stats?.activeRFQs ?? 0
         },
         {
             title: "Pending Approvals",
-            value: 5
+            value: stats?.pendingApprovals ?? 0
         },
         {
-            title: "PO's this month",
-            value: "$ 2.3L"
+            title: "PO's This Month",
+            value: `₹${(
+                stats?.poThisMonth || 0
+            ).toLocaleString()}`
         },
         {
             title: "Overdue Invoices",
-            value: 3
+            value: stats?.overdueInvoices ?? 0
         }
     ]
 
-    const orders = [
-        {
-            po: "PO1",
-            vendor: "Infra",
-            amount: "₹87000",
-            status: "Approved"
-        },
-        {
-            po: "PO2",
-            vendor: "Tech Core",
-            amount: "₹140000",
-            status: "Pending"
-        },
-        {
-            po: "PO3",
-            vendor: "OfficeNeed Co",
-            amount: "₹34900",
-            status: "Draft"
-        }
-    ]
+    const totalSpend =
+        spending?.reduce(
+            (acc, item) =>
+                acc + (item?.spends || 0),
+            0
+        ) || 0
 
-    const spending = [
-        { month: "Jan", spends: 120000 },
-        { month: "Feb", spends: 140000 },
-        { month: "Mar", spends: 135000 },
-        { month: "Apr", spends: 190000 },
-        { month: "May", spends: 210000 },
-        { month: "Jun", spends: 230000 }
-    ]
+    const growth =
+        spending?.length >= 2
+            ? (
+                (
+                    (
+                        spending[
+                            spending.length - 1
+                        ]?.spends || 0
+                    ) -
+                    (
+                        spending[0]?.spends || 0
+                    )
+                ) /
+                (
+                    spending[0]?.spends || 1
+                )
+            ) * 100
+            : 0
+
+    if (loading) {
+
+        return (
+            <div className="
+                min-h-screen
+                flex
+                justify-center
+                items-center
+            ">
+                <Loader size="lg" />
+            </div>
+        )
+
+    }
 
     return (
+
         <div className="min-h-screen bg-slate-50 p-8">
 
             {/* Header */}
@@ -78,7 +229,7 @@ function Dashboard() {
                 </h1>
 
                 <p className="text-slate-500 mt-1">
-                    Welcome back, {role} — Today's Overview
+                    Welcome back, {role}
                 </p>
 
             </div>
@@ -87,39 +238,40 @@ function Dashboard() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5 mb-8">
 
-                {cards.map((item) => (
+                {
+                    cards.map((item) => (
 
-                    <Card
-                        key={item.title}
-                        radius="lg"
-                        shadow="sm"
-                        className="
-                        bg-white
-                        border
-                        border-slate-200
-                        py-8
-                    "
-                    >
+                        <Card
+                            key={item.title}
+                            radius="lg"
+                            shadow="sm"
+                            className="
+                                border
+                                border-slate-200
+                                py-8
+                            "
+                        >
 
-                        <div className="text-center">
+                            <div className="text-center">
 
-                            <h2 className="text-4xl font-bold text-blue-600">
-                                {item.value}
-                            </h2>
+                                <h2 className="text-4xl font-bold text-blue-600">
+                                    {item.value}
+                                </h2>
 
-                            <p className="mt-3 text-slate-500">
-                                {item.title}
-                            </p>
+                                <p className="mt-3 text-slate-500">
+                                    {item.title}
+                                </p>
 
-                        </div>
+                            </div>
 
-                    </Card>
+                        </Card>
 
-                ))}
+                    ))
+                }
 
             </div>
 
-            {/* Table + Chart */}
+            {/* Orders & Chart */}
 
             <div className="grid lg:grid-cols-3 gap-6">
 
@@ -128,10 +280,10 @@ function Dashboard() {
                 <Card
                     radius="lg"
                     className="
-                    lg:col-span-2
-                    border
-                    border-slate-200
-                "
+                        lg:col-span-2
+                        border
+                        border-slate-200
+                    "
                 >
 
                     <h3 className="text-lg font-semibold mb-5">
@@ -147,13 +299,21 @@ function Dashboard() {
 
                             <Table.Tr>
 
-                                <Table.Th>PO#</Table.Th>
+                                <Table.Th>
+                                    PO#
+                                </Table.Th>
 
-                                <Table.Th>Vendor</Table.Th>
+                                <Table.Th>
+                                    Vendor
+                                </Table.Th>
 
-                                <Table.Th>Amount</Table.Th>
+                                <Table.Th>
+                                    Amount
+                                </Table.Th>
 
-                                <Table.Th>Status</Table.Th>
+                                <Table.Th>
+                                    Status
+                                </Table.Th>
 
                             </Table.Tr>
 
@@ -162,53 +322,83 @@ function Dashboard() {
                         <Table.Tbody>
 
                             {
-                                orders.map((item) => (
+                                orders?.length > 0 ? (
 
-                                    <Table.Tr
-                                        key={item.po}
-                                    >
+                                    orders.map(
+                                        (item) => (
 
-                                        <Table.Td>
-                                            {item.po}
-                                        </Table.Td>
-
-                                        <Table.Td>
-                                            {item.vendor}
-                                        </Table.Td>
-
-                                        <Table.Td>
-                                            {item.amount}
-                                        </Table.Td>
-
-                                        <Table.Td>
-
-                                            <span
-                                                className={`
-                                                px-3
-                                                py-1
-                                                rounded-full
-                                                text-sm
-                                                
-                                                ${item.status ===
-                                                        "Approved"
-                                                        ? "bg-green-100 text-green-700"
-                                                        : item.status ===
-                                                            "Pending"
-                                                            ? "bg-yellow-100 text-yellow-700"
-                                                            : "bg-gray-100 text-gray-700"
-                                                    }
-                                            `}
-                                            >
-                                                {
-                                                    item.status
+                                            <Table.Tr
+                                                key={
+                                                    item?._id
                                                 }
-                                            </span>
+                                            >
 
+                                                <Table.Td>
+                                                    {
+                                                        item?.poNumber ||
+                                                        "N/A"
+                                                    }
+                                                </Table.Td>
+
+                                                <Table.Td>
+                                                    {
+                                                        item?.vendorId?.companyName ||
+                                                        "N/A"
+                                                    }
+                                                </Table.Td>
+
+                                                <Table.Td>
+                                                    ₹
+                                                    {
+                                                        item?.grandTotal?.toLocaleString() ||
+                                                        0
+                                                    }
+                                                </Table.Td>
+
+                                                <Table.Td>
+
+                                                    <span
+                                                        className={`
+                                                        px-3
+                                                        py-1
+                                                        rounded-full
+                                                        text-sm
+
+                                                        ${item?.status === "Approved"
+                                                                ? "bg-green-100 text-green-700"
+                                                                : item?.status === "Pending"
+                                                                    ? "bg-yellow-100 text-yellow-700"
+                                                                    : "bg-gray-100 text-gray-700"
+                                                            }
+                                                    `}
+                                                    >
+                                                        {
+                                                            item?.status ||
+                                                            "Unknown"
+                                                        }
+                                                    </span>
+
+                                                </Table.Td>
+
+                                            </Table.Tr>
+
+                                        )
+                                    )
+
+                                ) : (
+
+                                    <Table.Tr>
+
+                                        <Table.Td
+                                            colSpan={4}
+                                            className="text-center py-6"
+                                        >
+                                            No Purchase Orders Found
                                         </Table.Td>
 
                                     </Table.Tr>
 
-                                ))
+                                )
                             }
 
                         </Table.Tbody>
@@ -217,28 +407,23 @@ function Dashboard() {
 
                 </Card>
 
-                {/* Chart */}
+                {/* Spending Chart */}
 
                 <Card
                     radius="lg"
                     className="
-                    border
-                    border-slate-200
-                "
+                        border
+                        border-slate-200
+                    "
                 >
 
                     <h3 className="font-semibold mb-4">
-
                         Spending Trends
-                        <span className="text-slate-500 ml-2">
-                            Last 6 Months
-                        </span>
-
                     </h3>
 
                     <BarChart
                         h={260}
-                        data={spending}
+                        data={spending || []}
                         dataKey="month"
                         withLegend={false}
                         withTooltip
@@ -250,7 +435,7 @@ function Dashboard() {
                         ]}
                     />
 
-                    <div className="mt-6">
+                    <div className="mt-5">
 
                         <div className="flex justify-between">
 
@@ -259,7 +444,8 @@ function Dashboard() {
                             </span>
 
                             <span className="font-semibold">
-                                ₹10.2L
+                                ₹
+                                {totalSpend.toLocaleString()}
                             </span>
 
                         </div>
@@ -270,9 +456,89 @@ function Dashboard() {
                                 Growth
                             </span>
 
-                            <span className="text-green-600 font-semibold">
-                                +18%
+                            <span className="font-semibold text-green-600">
+                                {growth.toFixed(1)}%
                             </span>
+
+                        </div>
+
+                    </div>
+
+                </Card>
+
+            </div>
+
+            {/* Vendor Summary */}
+
+            <div className="mt-8">
+
+                <Card
+                    radius="lg"
+                    className="
+                        border
+                        border-slate-200
+                    "
+                >
+
+                    <h3 className="font-semibold mb-5">
+                        Vendor Summary
+                    </h3>
+
+                    <div className="grid md:grid-cols-4 gap-5">
+
+                        <div>
+
+                            <p className="text-slate-500">
+                                Total Vendors
+                            </p>
+
+                            <h4 className="text-xl font-bold">
+                                {
+                                    quickStats?.totalVendors ?? 0
+                                }
+                            </h4>
+
+                        </div>
+
+                        <div>
+
+                            <p className="text-slate-500">
+                                Approved Vendors
+                            </p>
+
+                            <h4 className="text-xl font-bold text-green-600">
+                                {
+                                    quickStats?.approvedVendors ?? 0
+                                }
+                            </h4>
+
+                        </div>
+
+                        <div>
+
+                            <p className="text-slate-500">
+                                Blocked Vendors
+                            </p>
+
+                            <h4 className="text-xl font-bold text-red-600">
+                                {
+                                    quickStats?.blockedVendors ?? 0
+                                }
+                            </h4>
+
+                        </div>
+
+                        <div>
+
+                            <p className="text-slate-500">
+                                Total PO's
+                            </p>
+
+                            <h4 className="text-xl font-bold">
+                                {
+                                    quickStats?.totalPOs ?? 0
+                                }
+                            </h4>
 
                         </div>
 
@@ -289,30 +555,31 @@ function Dashboard() {
                 <Card
                     radius="lg"
                     className="
-                    border
-                    border-slate-200
-                "
+                        border
+                        border-slate-200
+                    "
                 >
 
                     <div className="flex flex-wrap gap-4">
 
                         <Button
-                            radius="md"
-                            leftSection={<Plus size={16} />}
+                            leftSection={
+                                <Plus size={16} />
+                            }
                         >
                             New RFQ
                         </Button>
 
                         <Button
-                            radius="md"
                             variant="default"
-                            leftSection={<Plus size={16} />}
+                            leftSection={
+                                <Plus size={16} />
+                            }
                         >
                             Add Vendor
                         </Button>
 
                         <Button
-                            radius="md"
                             variant="light"
                         >
                             View Invoices
@@ -325,6 +592,7 @@ function Dashboard() {
             </div>
 
         </div>
+
     )
 }
 
